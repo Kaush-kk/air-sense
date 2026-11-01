@@ -1,0 +1,66 @@
+#!/bin/bash
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"
+
+VENV_PY="$HOME/.veer/venv/bin/python"
+[ ! -x "$VENV_PY" ] && VENV_PY="$HOME/.air-sense/venv/bin/python"
+ENGINE="$HOME/.veer/music_airsense.py"
+[ ! -f "$ENGINE" ] && ENGINE="$HOME/.air-sense/music_airsense.py"
+CONFIG="$HOME/Vault/airsense_config.json"
+
+case "$1" in
+    hud)
+        pkill -f "music_airsense.py" 2>/dev/null
+        echo "✦ Launching Air-Sense Dual-Hand Spatial HUD (Press 'Q' inside window to close)..."
+        "$VENV_PY" "$ENGINE" --hud
+        ;;
+    start)
+        pkill -f "music_airsense.py" 2>/dev/null
+        nohup "$VENV_PY" "$ENGINE" >/dev/null 2>&1 &
+        notify-send -u normal -t 2200 "✦ Air-Sense Online" "1-Hand & 2-Hand spatial tracking active"
+        echo "✅ Air-Sense background daemon started."
+        ;;
+    stop)
+        pkill -f "music_airsense.py" 2>/dev/null
+        notify-send -u low -t 2000 "✦ Air-Sense Offline" "Webcam released"
+        echo "🔇 Air-Sense stopped."
+        ;;
+    list)
+        python3 - << 'PYEOF'
+import json, os
+p = os.path.expanduser("~/Vault/airsense_config.json")
+cfg = json.load(open(p))
+print("\n✦ AIR-SENSE CONFIGURED GESTURES (~/Vault/airsense_config.json) ✦")
+print("-" * 72)
+for k, v in cfg.get("gestures", {}).items():
+    print(f"• {k:<18} | {v.get('description','')}")
+    print(f"  Action -> {v.get('action','')}\n")
+PYEOF
+        ;;
+    set)
+        python3 - << 'PYEOF'
+import json, os
+p = os.path.expanduser("~/Vault/airsense_config.json")
+cfg = json.load(open(p))
+gestures = list(cfg.get("gestures", {}).keys())
+print("✦ Select a gesture to customize:", ", ".join(gestures))
+g = input("Gesture name: ").strip()
+if g not in cfg.get("gestures", {}):
+    print("❌ Unknown gesture key.")
+    raise SystemExit(1)
+act = input("Enter Linux command (or INTERNAL:NEXT_TRACK / INTERNAL:EXPAND_SPACE): ").strip()
+lbl = input("HUD Banner Label: ").strip() or g.upper()
+cfg["gestures"][g]["action"] = act
+cfg["gestures"][g]["label"] = lbl
+json.dump(cfg, open(p, "w"), indent=2)
+print(f"✅ Updated '{g}' -> '{act}'!")
+PYEOF
+        ;;
+    edit)
+        ${EDITOR:-micro} "$CONFIG"
+        ;;
+    *)
+        echo "Usage: air-sense {hud|start|stop|list|set|edit}"
+        ;;
+esac

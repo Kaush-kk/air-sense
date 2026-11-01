@@ -1,0 +1,30 @@
+{
+  "cooldown_seconds": 1.5,
+  "gestures": {
+    "swipe_right": {
+      "description": "Single hand open-palm swipe right",
+      "label": "NEXT VAULT TRACK",
+      "action": "INTERNAL:NEXT_TRACK"
+    },
+    "swipe_left": {
+      "description": "Single hand open-palm swipe left",
+      "label": "SILENCE AUDIO",
+      "action": "pkill -f 'mpv.*--no-video'"
+    },
+    "two_hand_expand": {
+      "description": "Two open hands stretched wide apart (Expand Space)",
+      "label": "SPACE EXPANDED // MANIFOLD SHIFT",
+      "action": "INTERNAL:EXPAND_SPACE"
+    },
+    "two_hand_compress": {
+      "description": "Two open hands brought close together (Singularity Compress)",
+      "label": "SINGULARITY COMPRESSED // GARGANTUA",
+      "action": "INTERNAL:COMPRESS_SPACE"
+    },
+    "peace_hold": {
+      "description": "Index + Middle finger V-sign held for 1.0s",
+      "label": "LAUNCH MISSION CONTROL",
+      "action": "/usr/local/bin/mission-control --hotkey"
+    }
+  }
+}
