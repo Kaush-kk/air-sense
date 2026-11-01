@@ -12,13 +12,13 @@ CONFIG="$HOME/Vault/airsense_config.json"
 case "$1" in
     hud)
         pkill -f "music_airsense.py" 2>/dev/null
-        echo "✦ Launching Air-Sense Dual-Hand Spatial HUD (Press 'Q' inside window to close)..."
+        echo "✦ Launching Air-Sense HUD (Press 'Q' inside window to close)..."
         "$VENV_PY" "$ENGINE" --hud
         ;;
     start)
         pkill -f "music_airsense.py" 2>/dev/null
         nohup "$VENV_PY" "$ENGINE" >/dev/null 2>&1 &
-        notify-send -u normal -t 2200 "✦ Air-Sense Online" "1-Hand & 2-Hand spatial tracking active"
+        notify-send -u normal -t 2200 "✦ Air-Sense Online" "Static finger-holds & 2-hand spatial tracking active"
         echo "✅ Air-Sense background daemon started."
         ;;
     stop)
@@ -31,8 +31,8 @@ case "$1" in
 import json, os
 p = os.path.expanduser("~/Vault/airsense_config.json")
 cfg = json.load(open(p))
-print("\n✦ AIR-SENSE CONFIGURED GESTURES (~/Vault/airsense_config.json) ✦")
-print("-" * 72)
+print("\n✦ AIR-SENSE GESTURE TABLE (~/Vault/airsense_config.json) ✦")
+print("-" * 74)
 for k, v in cfg.get("gestures", {}).items():
     print(f"• {k:<18} | {v.get('description','')}")
     print(f"  Action -> {v.get('action','')}\n")
@@ -40,21 +40,33 @@ PYEOF
         ;;
     set)
         python3 - << 'PYEOF'
-import json, os
+import json, os, sys
+sys.stdin = open("/dev/tty", "r")
 p = os.path.expanduser("~/Vault/airsense_config.json")
 cfg = json.load(open(p))
 gestures = list(cfg.get("gestures", {}).keys())
-print("✦ Select a gesture to customize:", ", ".join(gestures))
-g = input("Gesture name: ").strip()
+print("\n✦ AIR-SENSE INTERACTIVE GESTURE BUILDER ✦")
+for i, g in enumerate(gestures, 1):
+    desc = cfg["gestures"][g].get("description", "")
+    act = cfg["gestures"][g].get("action", "")
+    print(f"  [{i}] {g:<18} ({desc}) -> {act}")
+choice = input("\nEnter gesture name or number (1-6): ").strip()
+if choice.isdigit() and 1 <= int(choice) <= len(gestures):
+    g = gestures[int(choice) - 1]
+else:
+    g = choice
 if g not in cfg.get("gestures", {}):
-    print("❌ Unknown gesture key.")
+    print(f"❌ Unknown gesture '{g}'.")
     raise SystemExit(1)
-act = input("Enter Linux command (or INTERNAL:NEXT_TRACK / INTERNAL:EXPAND_SPACE): ").strip()
-lbl = input("HUD Banner Label: ").strip() or g.upper()
-cfg["gestures"][g]["action"] = act
-cfg["gestures"][g]["label"] = lbl
+print("\nAvailable Built-in Actions: INTERNAL:NEXT_TRACK | INTERNAL:SMART_HUD | INTERNAL:LOCKDOWN | INTERNAL:EXPAND_SPACE | INTERNAL:COMPRESS_SPACE")
+act = input(f"Enter new Linux command or built-in action for '{g}': ").strip()
+lbl = input("Enter HUD Banner Label (or press Enter to keep current): ").strip()
+if act:
+    cfg["gestures"][g]["action"] = act
+if lbl:
+    cfg["gestures"][g]["label"] = lbl
 json.dump(cfg, open(p, "w"), indent=2)
-print(f"✅ Updated '{g}' -> '{act}'!")
+print(f"\n✅ Updated '{g}' -> '{cfg['gestures'][g]['action']}'!")
 PYEOF
         ;;
     edit)
